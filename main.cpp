@@ -44,23 +44,53 @@ bool verify(CHTree<int>& ch, std::vector<int> data, int lb, int ub) {
 
 struct BucketDynHull{
     std::vector<std::list<Point_2>> buckets={std::list<Point_2>()};
+    std::vector<std::list<Point_2>> gbuckets={std::list<Point_2>()};
     std::vector<std::list<Point_2>> hulls={std::list<Point_2>()};
+    std::vector<std::list<Point_2>> ghulls={std::list<Point_2>()};
 
     void Insert(Point_2 p){
         buckets[0].emplace_back(p); // TODO: Recompute hull
-        if(buckets[0].size() == 2<<4){
+        if(buckets[0].size() + gbuckets[0].size() == 2<<4){
             for(int i=1;;++i ){
                 if(i == buckets.size()){
                     buckets.emplace_back();
+                    gbuckets.emplace_back();
                     hulls.emplace_back();
+                    ghulls.emplace_back();
                 }
                 hulls[i].clear();
+                ghulls[i].clear();
                 if(buckets[i].size() == 0){
                     for(int j=0; j<i; ++j){
                         buckets[i].splice(buckets[i].cbegin(),buckets[j]);
+                        gbuckets[i].splice(gbuckets[i].cbegin(),gbuckets[j]);
                     }
+                    // Clear matching tombstones
+                    bool removed;
+                    for(auto iter = gbuckets[i].begin(); iter != gbuckets[i].end();iter++){
+                        for(auto inner = buckets[i].begin(); inner != buckets[i].end(); inner++){
+                            if(*iter == *inner){
+                                buckets[i].erase(inner);
+                                iter = --gbuckets[i].erase(iter);
+                                break;
+                            }
+                        }
+                    }
+
+
                 }
+                // Move buckets to closest power of two
+                // Yes, doing bit-twiddling gives constant time computation of rounding to nearest power of two but also unreadable
+                for(int j=i;j>0;j--){
+                    if(buckets[i].size() <= 2<<(1+j)) continue;// If you fit into previous bucket
+                    std::swap(buckets[i],buckets[j]);
+                    std::swap(gbuckets[i],gbuckets[j]);
+                    i = j;
+                    break;
+                }
+                // Construct hulls
                 CGAL::convex_hull_2(buckets[i].begin(),buckets[i].end(), std::back_inserter(hulls[i]));
+                CGAL::convex_hull_2(gbuckets[i].begin(),gbuckets[i].end(), std::back_inserter(ghulls[i]));
                 break;
             }
         }
@@ -72,6 +102,7 @@ bool verificationTest(int verify_step, bool shuffle){
     std::mt19937 g(rd());
     std::vector<int> data;
     auto CH = CHTree<int>();
+    auto BH = BucketDynHull();
     int acc = 0;
     int VERIFY_AFTER = 1;
     while(std::cin >> acc){
