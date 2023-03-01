@@ -30,7 +30,7 @@
 #BSUB -e Error_%J.err
 
 # here follow the commands you want to execute
-module load gcc/12.1.0-binutils-2.38 ninja/1.10.2 cmake/3.24 boost/1.81.0-gcc-12.2.0
+module load gcc/12.1.0-binutils-2.38 ninja/1.10.2 cmake/3.25.2 boost/1.81.0-gcc-12.2.0
 rm -rf ../cmake-build-default
 rm -f out_raw/*
 export CC=gcc
@@ -38,8 +38,8 @@ export CC=gcc
 mkdir -p out_raw
 
 # Build with compile time option
-cmake -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_CXX_FLAGS="-O3" -DCGAL_DIR="../cgal" -B ../cmake-build-default -DCMAKE_BUILD_TYPE=Release
-cmake --build ../cmake-build-default
+cmake -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_CXX_FLAGS="-O3" -DCGAL_DIR="../cgal" -B ./cmake-build-default -DCMAKE_BUILD_TYPE=Release
+cmake --build ./cmake-build-default
 
 # Run
-cat uniform.test | ./cmake-build-defaul/DynamicConvexHull RUN 1000 > out_raw/verify_uniform.test
+cat uniform.test | ./cmake-build-default/DynamicConvexHull RUN 1000 > out_raw/verify_uniform.test
