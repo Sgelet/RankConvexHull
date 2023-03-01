@@ -38,7 +38,7 @@ export CC=gcc
 mkdir -p out_raw
 
 # Build with compile time option
-cmake -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_CXX_FLAGS="-O3" -B ../cmake-build-default -DCMAKE_BUILD_TYPE=Release
+cmake -G Ninja -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_CXX_FLAGS="-O3" -DCGAL_DIR="../cgal" -B ../cmake-build-default -DCMAKE_BUILD_TYPE=Release
 cmake --build ../cmake-build-default
 
 # Run
