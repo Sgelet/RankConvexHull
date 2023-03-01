@@ -167,6 +167,22 @@ public:
         Verify();
     }
 
+    bool Covers(double x, double y){
+        // Find bridge that covers upper and check if we lie under
+        auto bridge_node = FindUCovering(x);
+        if(!bridge_node) return false;
+        auto[eu,u] = ExtractUBridge(bridge_node);
+        if(eu.Eval(x) < y) return false;
+
+        // Find bridge that covers lower and check if we lie above
+        bridge_node = FindLCovering(x);
+        if(!bridge_node) return false;
+        auto[el, l] = ExtractLBridge(bridge_node);
+        if(el.Eval(x) > y) return false;
+
+        return true;
+    }
+
     void PrettyPrinter(){
         PrintHelper(root,"",true);
     }
@@ -267,51 +283,53 @@ protected:
 
     Node* Find(T key){
         auto current = root;
-        size_t rank = size(current->left) + 1;
+        current->rank = size(current->left) + 1;
         while(!IsLeaf(current)){
-            current->rank = rank;
-            if(current->right->min->val <= key){
-                current = current->right;
-                rank += size(current->left);
-            } else {
-                current = current->left;
-                rank -= size(current->right);
-            }
+            if(current->right->min->val <= key) current = StepRight(current);
+            else current = StepLeft(current);
         }
-        current->rank = rank;
+        return current;
+    }
+
+    Node* FindUCovering(double x){
+        auto current = root;
+        if(!root) return nullptr;
+        root->rank = size(root->left) + 1;
+        while(current && !(current->rank-current->uBridge.ldiff <= x && x <= current->rank+current->uBridge.rdiff)){
+            if(x < current->rank - current->uBridge.ldiff ) current = StepLeft(current);
+            else if (x > current->rank + current->uBridge.rdiff) current = StepRight(current);
+            else return nullptr;
+        }
+        return current;
+    }
+    Node* FindLCovering(double x){
+        auto current = root;
+        if(!root) return nullptr;
+        root->rank = size(root->left) + 1;
+        while(current && !(current->rank-current->lBridge.ldiff <= x && x <= current->rank+current->lBridge.rdiff)){
+            if(x < current->rank - current->lBridge.ldiff) current = StepLeft(current);
+            else if (x > current->rank + current->lBridge.rdiff) current = StepRight(current);
+            else return nullptr;
+        }
         return current;
     }
 
     Node* FindFirstU(T key, bool left){
         auto current = root;
-        size_t rank = size(current->left) + 1;
+        current->rank = size(current->left) + 1;
         while((!left && current->uBridge.l != key) || (left && current->uBridge.r != key)){
-            current->rank = rank;
-            if(current->right->min->val <= key){
-                current = current->right;
-                rank += size(current->left);
-            } else {
-                current = current->left;
-                rank -= size(current->right);
-            }
+            if(current->right->min->val <= key) current = StepRight(current);
+            else current = StepLeft(current);
         }
-        current->rank = rank;
         return current;
     }
     Node* FindFirstL(T key, bool left){
         auto current = root;
         size_t rank = size(current->left) + 1;
         while((!left && current->lBridge.l != key) || (left && current->lBridge.r != key)){
-            current->rank = rank;
-            if(current->right->min->val <= key){
-                current = current->right;
-                rank += size(current->left);
-            } else {
-                current = current->left;
-                rank -= size(current->right);
-            }
+            if(current->right->min->val <= key) current = StepRight(current);
+            else current = StepLeft(current);
         }
-        current->rank = rank;
         return current;
     }
     inline
@@ -521,14 +539,14 @@ protected:
     }
 
     Node* StepLeft(Node* v){
-        if(!v->left) return v;
+        if(!v->left) return nullptr;
         auto x = v->left;
         x->rank = (v->rank - size(x->right) - IsLeaf(x));
         return x;
     }
 
     Node* StepRight(Node* v){
-        if(!v->right) return v;
+        if(!v->right) return nullptr;
         auto x = v->right;
         x->rank = v->rank + size(x->left);
         return x;
