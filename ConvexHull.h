@@ -121,8 +121,6 @@ public:
         right->rank = leaf->rank;
 
         Update(leaf,true, key);
-
-        Verify();
     }
 
     void Remove(T key){
@@ -163,8 +161,6 @@ public:
 
         // Rebalance
         Update(sibling,false, key);
-
-        Verify();
     }
 
     bool Covers(double x, double y){

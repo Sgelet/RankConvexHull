@@ -1,16 +1,18 @@
+#include <chrono>
+#include <cstring>
 #include "ConvexHull.h"
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/convex_hull_2.h>
+//#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+//#include <CGAL/convex_hull_2.h>
 #include "random"
 #include "list"
 //#include "toplevel_tree.h"
 
 
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::Point_2 Point_2;
+//typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+//typedef K::Point_2 Point_2;
 
 using hrc = std::chrono::high_resolution_clock;
-
+/*
 struct BucketDynHull{
     std::vector<std::list<Point_2>> buckets={std::list<Point_2>()};
     std::vector<std::list<Point_2>> gbuckets={std::list<Point_2>()};
@@ -57,14 +59,12 @@ struct BucketDynHull{
             }
             // Move buckets to closest power of two
             // Yes, doing bit-twiddling gives constant time computation of rounding to nearest power of two but also unreadable
-            /*
             for(int j=i-1;j>0;j--){
                 if(buckets[i].size() <= 2<<(j)) continue;// If you fit into previous bucket
                 std::swap(buckets[i],buckets[j]);
                 std::swap(gbuckets[i],gbuckets[j]);
                 i = j;
             }
-             */
             // Construct hulls
             std::vector<int> temp;
             for(auto e: buckets[i]){
@@ -249,42 +249,35 @@ bool verificationTest(int verify_step, bool shuffle){
     }
     return true;
 }
-
+*/
 void runtimeTest(int window_size){
     // Read data
     std::random_device rd;
     std::mt19937 g(rd());
     std::vector<int> data;
-    int acc = 0;
-    while(std::cin >> acc){
-        data.emplace_back(acc);
+    int x = 0;
+    while(std::cin >> x){
+        data.emplace_back(x);
     }
     std::shuffle(data.begin(),data.end(),g);
 
     auto CH = CHTree<int>();
-    auto BH = BucketDynHull();
 
     auto t0 = hrc::now();
     auto t1 = hrc::now();
+    auto acc = t1-t0;
 
-    std::cout << "Inserting ROCH"<<std::endl;
+    std::cout << "Inserting"<<std::endl;
     for(int i=0; i<data.size()/window_size;i++){
         t0 = hrc::now();
         for(int j=0; j<window_size; j++){
             CH.Insert(data[i*window_size+j]);
         }
         t1 = hrc::now();
-        std::cout << (i+1)*window_size << ", " << (t1 - t0).count() * 1e-9 << std::endl;
+        acc += (t1-t0);
+        std::cout << (i+1)*window_size << " " << (t1 - t0).count() * 1e-9 << " "<< acc.count() * 1e-9 << " 0 0" <<std::endl;
     }
-    std::cout << "Inserting BucketStruct"<<std::endl;
-    for(int i=0; i<data.size()/window_size;i++){
-        t0 = hrc::now();
-        for(int j=0; j<window_size; j++){
-            BH.Insert({i,data[i*window_size+j]});
-        }
-        t1 = hrc::now();
-        std::cout << (i+1)*window_size << ", " << (t1 - t0).count() * 1e-9 << std::endl;
-    }
+/*
     std::cout << "Deleting ROCH"<<std::endl;
     for(int i=0; i<data.size()/window_size;i++){
         t0 = hrc::now();
@@ -294,42 +287,19 @@ void runtimeTest(int window_size){
         t1 = hrc::now();
         std::cout << (i+1)*window_size << ", " << (t1 - t0).count() * 1e-9 << std::endl;
     }
-    std::cout << "Deleting BucketStruct"<<std::endl;
-    for(int i=0; i<data.size()/window_size;i++){
-        t0 = hrc::now();
-        for(int j=0; j<window_size; j++){
-            BH.Remove({i,data[i*window_size+j]});
-        }
-        t1 = hrc::now();
-        std::cout << (i+1)*window_size << ", " << (t1 - t0).count() * 1e-9 << std::endl;
-    }
+*/
 }
 
 template <typename T>
 struct as {};
 template <typename T>
 std::vector<T> generate_data(size_t n) {
-    std::vector<T> data(n);
+    std::vector<T> data(1<<n);
     std::mt19937 engine(42);
 
-    using RandomFunction = std::function<T()>;
-    if constexpr (std::is_floating_point<T>()) {
-        RandomFunction lognormal = std::bind(std::lognormal_distribution<T>(0, 0.5), engine);
-        RandomFunction exponential = std::bind(std::exponential_distribution<T>(1.2), engine);
-        auto rand = GENERATE_COPY(as<RandomFunction>{}, lognormal, exponential);
-        std::generate(data.begin(), data.end(), rand);
-    } else {
-        T min = 0;
-        if constexpr (std::is_signed_v<T>)
-            //min = -10000;
-        RandomFunction uniform_dense = std::bind(std::uniform_int_distribution<T>(min, 10000), engine);
-        RandomFunction uniform_sparse = std::bind(std::uniform_int_distribution<T>(min, 10000000), engine);
-        RandomFunction binomial = std::bind(std::binomial_distribution<T>(50000), engine);
-        RandomFunction geometric = std::bind(std::geometric_distribution<T>(0.8), engine);
-        std::generate(data.begin(), data.end(), uniform_sparse);
-    }
+    std::uniform_int_distribution<int> d;
+    std::generate(data.begin(),data.end(),[&](){return d(engine);});
 
-    std::sort(data.begin(), data.end());
     return data;
 }
 int main(int argc, char* argv[]){
@@ -339,8 +309,8 @@ int main(int argc, char* argv[]){
     }
     if(!std::strcmp(argv[1],"VER")){
         std::cout << "Running verification against CGAL convex hull: ";
-        if(verificationTest(atoi(argv[2]),true)) std::cout << "SUCCESS";
-        else std::cout << "FAILURE";
+        //if(verificationTest(atoi(argv[2]),true)) std::cout << "SUCCESS";
+        //else std::cout << "FAILURE";
         std::cout << std::endl;
     }else if(!std::strcmp(argv[1],"GEN")){
         auto data = generate_data<int>(atoi(argv[2]));
